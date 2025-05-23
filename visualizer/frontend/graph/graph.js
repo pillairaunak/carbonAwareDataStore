@@ -174,6 +174,32 @@ const getNormalisedValues = (dataPoints) => {
 };
 
 /**
+ * Add Rectangular grid marking what is projected
+ * @param {SVGAElement} graphElement
+ * @param {[number, number]} dataPoint
+ * @param {number} width
+ * @param {number} height
+ */
+const addTranspartentRectangle = (graphElement, dataPoint, width, height) => {
+  const [x0] = dataPoint;
+
+  // Create path
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('id', `transparent_rect`);
+  const d = `
+ M ${x0} ${0}
+ L ${x0} ${height}
+ L ${width} ${height}
+ L ${width} ${0}
+ Z
+ `;
+  path.setAttribute('d', d.trim());
+  path.setAttribute('fill', `rgba(255,255,255,.7)`);
+
+  graphElement.appendChild(path);
+};
+
+/**
  * Embeds a grah element into an SVGElement
  * @param {SVGAElement} graphElement
  * @param {[number, number][]} dataPoints
@@ -188,7 +214,11 @@ const addGraph = (graphElement, dataPoints, width, height, tolerance) => {
   const mappedPoints = getVisualisationPoints(dataPoints, width, height, tolerance);
   const normalisedValues = getNormalisedValues(dataPoints);
 
+  const epoch = Number(new Date()) * 1e-3;
+  const index = dataPoints.findIndex(([e, v]) => e > epoch);
+
   addGradients(graphElement, mappedPoints, height, normalisedValues);
   addPath(graphElement, mappedPoints);
+  addTranspartentRectangle(graphElement, mappedPoints[index], width, height);
   addHoverable(graphElement, mappedPoints, getLabels(dataPoints), height);
 };
