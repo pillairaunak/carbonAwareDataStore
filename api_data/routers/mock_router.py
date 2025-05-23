@@ -1,11 +1,7 @@
-from dataclasses import dataclass
 from threading import Thread
 import time
-import random
-import requests
 
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from routers.datasource import DataSource
