@@ -10,7 +10,7 @@ router = APIRouter()
 
 mock_data = MockData(pricing_data=0.0, forecasting_data=0.0, carbon_data=0.0)
 
-def get_present_pricing_data():
+def get_present_carbon_data():
     url = "https://api.electricitymap.org/v3/carbon-intensity/latest?zone=DE"
     headers = {"auth-token": "RZ3Zp595HbEVg9wlGXPa"}
     response = requests.get(url, headers=headers)
@@ -22,13 +22,13 @@ def get_present_pricing_data():
 def update_data():
     while True:
         try:
-            data = get_present_pricing_data()
+            data = get_present_carbon_data()
             if data:
-                mock_data.pricing_data = data['carbonIntensity']
+                mock_data.carbon_data = data['carbonIntensity']
         except Exception as e:
             pass
         mock_data.forecasting_data = random.randint(1, 100) + random.random()
-        mock_data.carbon_data = random.randint(1, 100) + random.random()
+        mock_data.pricing_data = random.randint(1, 100) + random.random()
         time.sleep(60)
 
 @router.on_event("startup")
