@@ -1,33 +1,37 @@
 import requests
 import random
 from routers.datasource import DataSource
+from schemas.forecasting_data import ForecastingData
+from schemas.forecasting_data import ForecastingDataList
 
 CARBON_API_KEY = "RZ3Zp595HbEVg9wlGXPa"
 
 
 class ElectricityMapSource(DataSource):
 
-    def pricing_data(self) -> float:
-        # TODO implement
-        return random.randint(1, 100) + random.random()
-
-
     def _request_carbon_intensity_forecast(self) -> float:
         """Carbon intensity forecast. """
-        url = "https://api.electricitymap.org/v3/carbon-intensity/forecast"
-        # TODO add request parameters
-        headers = {"auth-token": CARBON_API_KEY}
+        # curl -X 'GET' \
+#   'https://api.energy-charts.info/ren_share_forecast?country=de' \
+#   -H 'accept: application/json'
+        url = "https://api.energy-charts.info/ren_share_forecast?country=de"
+        headers = {"accept": "application/json"}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            return data
+        return None
+
+    def forecasting_data(self):
+        data_new = self._request_carbon_intensity_forecast()
+        if data_new is not None:
+            # Extract the forecast value from the response
+            seconds = data_new['unix_seconds']
+            values = data_new['ren_share']
+            return ForecastingDataList(forecast=[ForecastingData(timestamp=str(second), value=(100-v)*8.8) for second, v in zip(seconds, values)])
         else:
             return None
-
-    def forecasting_data(self) -> float:
-        # TODO implement
-        # data = self._request_carbon_intensity_forecast()
-        return random.randint(1, 100) + random.random()
-
+    
     def _request_current_carbon_intensity(self) -> dict:
         url = "https://api.electricitymap.org/v3/carbon-intensity/latest?zone=DE"
         headers = {"auth-token": CARBON_API_KEY}
