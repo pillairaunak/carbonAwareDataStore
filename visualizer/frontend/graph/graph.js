@@ -7,7 +7,8 @@ const getGradientColorForValue = (n) => {
   const r = 255;
   const g = Math.round(255 * n); //Math.round(255 * n);
   const b = Math.round(255 * n);
-  return `rgb(${r}, ${g}, ${b})`;
+  const a = 1 - n;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 };
 
 /**
@@ -15,8 +16,9 @@ const getGradientColorForValue = (n) => {
  * @param {SVGAElement} graphElement
  * @param {[number, number][]} points - unitized numbers
  * @param {number} height
+ * @param {number[]} normalisedValues
  */
-const addGradients = (graphElement, points, height) => {
+const addGradients = (graphElement, points, height, normalisedValues) => {
   // adding the grid background
   for (let i = 0; i < points.length - 1; i++) {
     const [x0, y0] = points[i];
@@ -34,11 +36,11 @@ const addGradients = (graphElement, points, height) => {
     // Add color stops
     const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
     stop1.setAttribute('offset', '0%');
-    stop1.setAttribute('stop-color', getGradientColorForValue(y0 / 100)); // side A
+    stop1.setAttribute('stop-color', getGradientColorForValue(normalisedValues[i])); // side A
 
     const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
     stop2.setAttribute('offset', '100%');
-    stop2.setAttribute('stop-color', getGradientColorForValue(y1 / 100)); // side B
+    stop2.setAttribute('stop-color', getGradientColorForValue(normalisedValues[i + 1])); // side B
 
     gradient.appendChild(stop1);
     gradient.appendChild(stop2);
@@ -85,14 +87,15 @@ const addPath = (graphElement, points) => {
  * @param {SVGAElement} graphElement
  * @param {[number, number][]} points
  * @param {string[]} labels
+ * @param {number} height
  */
-const addHoverable = (graphElement, points, labels) => {
+const addHoverable = (graphElement, points, labels, height) => {
   points.forEach(([x, y], i, arr) => {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x);
     line.setAttribute('y1', 0);
     line.setAttribute('x2', x);
-    line.setAttribute('y2', 100);
+    line.setAttribute('y2', height);
     line.setAttribute('stroke', 'gray');
     line.setAttribute('stroke-dasharray', '4');
     line.setAttribute('visibility', 'hidden');
@@ -110,7 +113,7 @@ const addHoverable = (graphElement, points, labels) => {
     tooltip.setAttribute('y', y + 2);
     tooltip.setAttribute('fill', 'black');
     tooltip.setAttribute('font-size', '12');
-    tooltip.setAttribute('text-anchor', i > (arr.length * 1) / 3 ? 'end' : 'start');
+    tooltip.setAttribute('text-anchor', i > arr.length / 2 ? 'end' : 'start');
     tooltip.textContent = labels[i];
     tooltip.setAttribute('visibility', 'hidden');
     graphElement.appendChild(tooltip); // Hover events
@@ -157,6 +160,17 @@ const getVisualisationPoints = (dataPoints, width, height, tolerance) => {
 };
 
 /**
+ * Constructing the labels for the svg
+ * @param {[number, number][]} dataPoints
+ */
+const getNormalisedValues = (dataPoints) => {
+  const minY = Math.min(...dataPoints.map(([, y]) => y));
+  const maxY = Math.max(...dataPoints.map(([, y]) => y));
+
+  return dataPoints.map(([, y]) => 1 - (y - minY) / (maxY - minY));
+};
+
+/**
  * Embeds a grah element into an SVGElement
  * @param {SVGAElement} graphElement
  * @param {[number, number][]} dataPoints
@@ -169,8 +183,9 @@ const addGraph = (graphElement, dataPoints, width, height, tolerance) => {
   graphElement.innerHTML = '';
 
   const mappedPoints = getVisualisationPoints(dataPoints, width, height, tolerance);
+  const normalisedValues = getNormalisedValues(dataPoints);
 
-  addGradients(graphElement, mappedPoints, height);
+  addGradients(graphElement, mappedPoints, height, normalisedValues);
   addPath(graphElement, mappedPoints);
-  addHoverable(graphElement, mappedPoints, getLabels(dataPoints));
+  addHoverable(graphElement, mappedPoints, getLabels(dataPoints), height);
 };
