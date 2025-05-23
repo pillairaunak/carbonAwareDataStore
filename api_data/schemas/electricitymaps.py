@@ -1,12 +1,7 @@
-import random
-
 import requests
 from routers.datasource import DataSource
 
-from auth import get_carbon_api_key
-
-CARBON_API_KEY = get_carbon_api_key()
-print(CARBON_API_KEY)
+CARBON_API_KEY = "RZ3Zp595HbEVg9wlGXPa"
 
 
 class ElectricityMapSource(DataSource):
@@ -14,6 +9,7 @@ class ElectricityMapSource(DataSource):
     def pricing_data(self) -> float:
         # TODO implement
         return random.randint(1, 100) + random.random()
+
 
     def _request_carbon_intensity_forecast(self) -> float:
         """Carbon intensity forecast. """
@@ -50,3 +46,4 @@ class ElectricityMapSource(DataSource):
 
         except KeyError as e:
             pass
+
