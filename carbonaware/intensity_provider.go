@@ -1,40 +1,37 @@
 package carbonaware
 
 import (
+	"encoding/json" // New: For parsing API response
 	"fmt"
+	"io" // New: For reading response body (Go 1.16+)
 	"log"
+	"net/http" // New: For making HTTP requests
 	"sync"
 	"time"
 )
 
 // IntensitySignal represents the state of carbon intensity at a given time.
+// (No changes from before)
 type IntensitySignal struct {
-	// Region represents the geographical region for which the intensity is relevant.
-	Region string
-	// Timestamp is when this intensity signal was generated or considered valid.
+	Region    string
 	Timestamp time.Time
-	// Value is the actual carbon intensity, e.g., in gCO2eq/kWh.
-	Value float64
-	// IsLow is a simple flag indicating if the current intensity is considered low (good for running workloads).
-	IsLow bool
+	Value     float64
+	IsLow     bool
 }
 
 // IntensityProvider defines the interface for components that can provide carbon intensity information.
+// (No changes from before)
 type IntensityProvider interface {
-	// GetCurrentIntensity fetches the current carbon intensity signal for a given region.
 	GetCurrentIntensity(region string) (IntensitySignal, error)
 }
 
-// MockIntensityProvider is an implementation of IntensityProvider
-// that simulates carbon intensity data, useful for testing and demos.
+// --- MockIntensityProvider (Existing Code - No changes from before) ---
 type MockIntensityProvider struct {
 	mu            sync.RWMutex
 	currentSignal IntensitySignal
 	region        string
 }
 
-// NewMockIntensityProvider creates a new MockIntensityProvider.
-// It starts with a default low intensity.
 func NewMockIntensityProvider(region string) *MockIntensityProvider {
 	provider := &MockIntensityProvider{
 		region: region,
@@ -45,73 +42,133 @@ func NewMockIntensityProvider(region string) *MockIntensityProvider {
 			IsLow:     true,
 		},
 	}
-	log.Printf("[CarbonMock] Initialized for region '%s'. Intensity: LOW 🟢 (Value: %.2f gCO2eq/kWh)",
+	log.Printf("[CarbonMock] Initialized for region '%s'. Intensity: LOW :large_green_circle: (Value: %.2f gCO2eq/kWh)",
 		provider.region, provider.currentSignal.Value)
 	return provider
 }
-
-// GetCurrentIntensity returns the current simulated carbon intensity.
 func (m *MockIntensityProvider) GetCurrentIntensity(region string) (IntensitySignal, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	if region != m.region {
-		return IntensitySignal{}, fmt.Errorf("MockIntensityProvider configured for region '%s', but queried for '%s'", m.region, region)
+	if m.region != "" && region != m.region { // Allow query for specific region if mock is configured for one
+		// Or, always return the mock's configured region's data regardless of query.
+		// For simplicity, let's assume if mock has a region, query must match or be empty (implying default).
+		// If query is empty, use mock's region.
+		// This logic can be refined based on desired mock behavior with regions.
 	}
-	// Update timestamp to now for freshness of the mock signal
-	// Create a new signal instance to avoid race conditions if currentSignal is used elsewhere concurrently
 	signalToSend := m.currentSignal
 	signalToSend.Timestamp = time.Now()
+	// If the query region is specified and different from mock's default,
+	// you might return an error or a generic signal. For now, it returns its currentSignal.
+	if region != "" {
+		signalToSend.Region = region // Update signal to reflect queried region if different
+	}
 	return signalToSend, nil
 }
-
-// SetIntensity allows manual control over the simulated carbon intensity.
-// This is useful for demos and testing.
 func (m *MockIntensityProvider) SetIntensity(isLow bool, value float64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
 	m.currentSignal.IsLow = isLow
 	m.currentSignal.Value = value
-	m.currentSignal.Timestamp = time.Now() // Update timestamp on change
-
+	m.currentSignal.Timestamp = time.Now()
 	var statusEmoji string
 	if isLow {
-		statusEmoji = "LOW 🟢"
+		statusEmoji = "LOW :large_green_circle:"
 	} else {
-		statusEmoji = "HIGH 🔴"
+		statusEmoji = "HIGH :red_circle:"
 	}
-
 	log.Printf("[CarbonMock] Intensity manually set to: %s (Value: %.2f gCO2eq/kWh)",
 		statusEmoji, m.currentSignal.Value)
 }
-
-// SimulateTimedChanges provides a simple way to make the mock provider
-// change its state over time for demo purposes if manual control isn't used.
-// This should be run in a separate goroutine.
 func (m *MockIntensityProvider) SimulateTimedChanges(interval time.Duration, quit <-chan struct{}) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-
-	// Initial state is already set by NewMockIntensityProvider
-	// We need to read the initial state under lock to be safe if SimulateTimedChanges is called very quickly after New
 	m.mu.RLock()
 	isCurrentlyLow := m.currentSignal.IsLow
 	m.mu.RUnlock()
-
 	for {
 		select {
 		case <-ticker.C:
-			isCurrentlyLow = !isCurrentlyLow // Toggle the state
+			isCurrentlyLow = !isCurrentlyLow
 			var newValue float64
 			if isCurrentlyLow {
-				newValue = 50.0 // Simulate a low value
+				newValue = 50.0
 			} else {
-				newValue = 450.0 // Simulate a high value
+				newValue = 450.0
 			}
-			m.SetIntensity(isCurrentlyLow, newValue) // Use SetIntensity to get the logging & proper locking
+			m.SetIntensity(isCurrentlyLow, newValue)
 		case <-quit:
 			log.Println("[CarbonMock] Simulation of timed changes stopped.")
 			return
 		}
 	}
+}
+
+// --- New: ApiIntensityProvider ---
+// ApiIntensityData is a struct to help unmarshal the JSON response from your API.
+// **IMPORTANT**: Adjust this struct to match the actual JSON response from http://localhost:8000/data
+type ApiIntensityData struct {
+	ForecastingData float64 `json:"forecasting_data"` // Assuming API provides region
+	CarbonIntensity float64 `json:"carbon_data"`      // Assuming this field holds the numeric value
+	PricingData     float64 `json:"forecasting_data"` // Assuming API provides unit
+	// Add other fields if your API returns more data you might want to use or log
+}
+
+// ApiIntensityProvider fetches carbon intensity data from a specified HTTP API.
+type ApiIntensityProvider struct {
+	client    *http.Client
+	apiUrl    string
+	threshold float64 // Value below or equal to which intensity is considered "LOW"
+	// defaultRegion string  // Can be used if API doesn't provide region or to override
+}
+
+// NewApiIntensityProvider creates a new provider that fetches from an API.
+// apiUrl: The full URL to the carbon intensity API endpoint.
+// threshold: The gCO2eq/kWh (or equivalent unit) value at or below which intensity is considered LOW.
+// requestTimeout: Timeout for the HTTP request.
+func NewApiIntensityProvider(apiUrl string, threshold float64, requestTimeout time.Duration) (*ApiIntensityProvider, error) {
+	if apiUrl == "" {
+		return nil, fmt.Errorf("API URL cannot be empty for ApiIntensityProvider")
+	}
+	return &ApiIntensityProvider{
+		client: &http.Client{
+			Timeout: requestTimeout,
+		},
+		apiUrl:    apiUrl,
+		threshold: threshold,
+	}, nil
+}
+
+// GetCurrentIntensity fetches data from the configured API and converts it to an IntensitySignal.
+func (p *ApiIntensityProvider) GetCurrentIntensity(queryRegion string) (IntensitySignal, error) {
+	// Note: The 'queryRegion' parameter might be used to adjust the API call if the API supports regional data,
+	// or it could be used to validate the response if the API returns a region.
+	// For this example, we'll assume the apiUrl is already specific or the API handles region implicitly.
+	resp, err := p.client.Get(p.apiUrl)
+	if err != nil {
+		return IntensitySignal{}, fmt.Errorf("ApiIntensityProvider: failed to fetch data from API '%s': %w", p.apiUrl, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body) // Read some of the body for error context
+		return IntensitySignal{}, fmt.Errorf("ApiIntensityProvider: API '%s' returned non-OK status %d: %s", p.apiUrl, resp.StatusCode, string(bodyBytes))
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return IntensitySignal{}, fmt.Errorf("ApiIntensityProvider: failed to read response body from API '%s': %w", p.apiUrl, err)
+	}
+	var apiData ApiIntensityData
+	if err := json.Unmarshal(body, &apiData); err != nil {
+		return IntensitySignal{}, fmt.Errorf("ApiIntensityProvider: failed to parse JSON response from API '%s': %w. Body: %s", p.apiUrl, err, string(body))
+	}
+	// Construct IntensitySignal
+	signal := IntensitySignal{
+		Region:    "Hello", // Use region from API data
+		Timestamp: time.Now(),
+		Value:     apiData.CarbonIntensity,
+		IsLow:     apiData.CarbonIntensity <= p.threshold,
+	}
+	// Log the fetched data for visibility
+	log.Printf("[ApiProvider] Fetched from %s: Intensity: %.2f %s,(Threshold: <=%.2f)",
+		p.apiUrl, apiData.CarbonIntensity, p.threshold)
+	return signal, nil
 }
