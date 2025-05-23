@@ -10,11 +10,18 @@
     <div class="container">
         <h1>MiniBTreeStore - Carbon-Aware Status</h1>
 
-        <div class="status-grid">
+        <div class="status-flex">
             <div class="status-item carbon-intensity-card" id="carbon-intensity-card">
-                <h2>Carbon Intensity</h2>
-                <p id="carbon-intensity-text">Fetching...</p>
-                <p id="carbon-intensity-value">Value: --- gCO2eq/kWh</p>
+                <div style="display: flex; flex-direction: row; gap: 20px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                    <div style="min-width: 200px">
+                        <h2>Carbon Intensity</h2>
+                        <p id="carbon-intensity-text">Fetching...</p>
+                        <p id="carbon-intensity-value">Value: --- gCO2eq/kWh</p>
+                    </div>
+                    <span style="min-width: 300px">
+                        <svg id="graph"></svg>
+                    </span>
+                </div>
             </div>
 
             <div class="status-item">
@@ -22,16 +29,15 @@
                 <p id="deferred-queue-size">Size: ---</p>
             </div>
 
+            
+        </div>
+
+        <div class="status-grid">
             <div class="status-item">
                 <h2>Configuration</h2>
                 <p id="config-carbon-aware">Carbon Aware: ---</p>
                 <p id="config-carbon-region">Region: ---</p>
             </div>
-        </div>
-
-        <svg id="graph"></svg>
-
-        <div class="status-grid">
             <div class="status-item">
                 <h2>Flushes: Normal</h2>
                 <p id="flushed-normal">Count: ---</p>
@@ -41,14 +47,10 @@
                 <h2>Flushes: Deferred</h2>
                 <p id="flushed-deferred">Count: ---</p>
             </div>
-
             <div class="status-item">
                 <h2>Flushes: Forced</h2>
                 <p id="flushed-forced">Count: ---</p>
             </div>
-        </div>
-        
-        <div class="status-grid">
             <div class="status-item">
                 <h2>Buffer Pool</h2>
                 <p id="buffer-total-pages">Pages In Buffer: --- / <span id="buffer-capacity">---</span></p>
