@@ -2,7 +2,7 @@ package buffer
 
 import (
 	"errors"
-	"time" // Added for DeferredFlushInterval
+	"time"
 )
 
 type Page struct {
@@ -28,23 +28,19 @@ type BufferManager interface {
 	UnpinPage(btreeID string, pageID PageID, isDirty bool) error
 	AllocatePage(btreeID string) (PageID, error)
 	FreePage(btreeID string, pageID PageID) error
-
-	// GetStats returns current operational statistics, useful for the visualizer.
-	// This is a new addition for Phase 2 to expose stats.
-	// The concrete type of stats will be defined alongside the visualizer implementation.
-	// For now, it's a placeholder for the concept.
-	// GetStats() map[string]interface{} // Or a specific struct
 }
 
 type Option func(*BufferManagerConfig)
 
 type BufferManagerConfig struct {
-	Directory             string
-	BufferSize            int
-	CarbonAware           bool          // New: Enable/disable carbon-aware features
-	CarbonRegion          string        // New: Region for carbon intensity data
-	DeferredFlushInterval time.Duration // New: How often to check deferred queue
-	VisualizerPort        string        // New: Port for the web visualizer backend
+	Directory              string
+	BufferSize             int
+	CarbonAware            bool
+	CarbonRegion           string
+	CarbonAPIEndpoint      string        // URL for the carbon intensity API
+	CarbonAPIClientTimeout time.Duration // Timeout for the carbon API client
+	DeferredFlushInterval  time.Duration
+	VisualizerPort         string
 }
 
 func WithDirectory(dir string) Option {
@@ -59,8 +55,6 @@ func WithBufferSize(numPages int) Option {
 	}
 }
 
-// New functional options for carbon awareness and visualizer
-
 func WithCarbonAware(enabled bool) Option {
 	return func(config *BufferManagerConfig) {
 		config.CarbonAware = enabled
@@ -70,6 +64,20 @@ func WithCarbonAware(enabled bool) Option {
 func WithCarbonRegion(region string) Option {
 	return func(config *BufferManagerConfig) {
 		config.CarbonRegion = region
+	}
+}
+
+// New option for Carbon API Endpoint
+func WithCarbonAPIEndpoint(url string) Option {
+	return func(config *BufferManagerConfig) {
+		config.CarbonAPIEndpoint = url
+	}
+}
+
+// New option for Carbon API Client Timeout
+func WithCarbonAPIClientTimeout(timeout time.Duration) Option {
+	return func(config *BufferManagerConfig) {
+		config.CarbonAPIClientTimeout = timeout
 	}
 }
 
