@@ -127,7 +127,7 @@ const (
 	// DefaultLowCarbonIntensityThreshold defines the gCO2eq/kWh value below which carbon intensity is considered low.
 	// This value can be adjusted based on regional data or specific requirements.
 	// For example, ElectricityMap often uses a gradient, but a common heuristic for "low" could be < 100-150.
-	DefaultLowCarbonIntensityThreshold = 100.0
+	DefaultLowCarbonIntensityThreshold = 200.0
 )
 
 // APIDataResponse matches the structure of the JSON response from your Python API's /data endpoint.
@@ -194,7 +194,7 @@ func (p *APIIntensityProvider) GetCurrentIntensity(regionQuery string) (Intensit
 	}
 
 	bodyStr := string(body) // Convert []byte to string
-	carbonValue, err := strconv.ParseFloat(bodyStr, 64)
+	carbonValue, err := strconv.ParseFloat(bodyStr, 32)
 	isLow := carbonValue <= p.lowCarbonThreshold
 
 	signal := IntensitySignal{
