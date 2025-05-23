@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from schemas.mock_schema import MockData
@@ -6,35 +8,37 @@ import time
 import random
 import requests
 
+from routers.schema import DataSource
+from schemas.electricitymaps import ElectricityMapSource
+
 router = APIRouter()
 
 mock_data = MockData(pricing_data=0.0, forecasting_data=0.0, carbon_data=0.0)
 
-def get_present_carbon_data():
-    url = "https://api.electricitymap.org/v3/carbon-intensity/latest?zone=DE"
-    headers = {"auth-token": "RZ3Zp595HbEVg9wlGXPa"}
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return None
+@dataclass
+class Data:
+    pricing_data: float
+    forecasting_data: float
+    carbon_data: float
 
-def update_data():
+
+data = Data(pricing_data=0.0, forecasting_data=0.0, carbon_data=0.0)
+
+
+def update_data(source: DataSource):
     while True:
-        try:
-            data = get_present_carbon_data()
-            if data:
-                mock_data.carbon_data = data['carbonIntensity']
-        except Exception as e:
-            pass
-        mock_data.forecasting_data = random.randint(1, 100) + random.random()
-        mock_data.pricing_data = random.randint(1, 100) + random.random()
+        data.carbon_data = source.carbon_data()
+        data.forecasting_data = source.forecasting_data()
+        data.pricing_data = source.pricing_data()
         time.sleep(60)
+
 
 @router.on_event("startup")
 def start_background_task():
-    thread = Thread(target=update_data, daemon=True)
+    source = ElectricityMapSource()
+    thread = Thread(target=update_data, args=[source], daemon=True)
     thread.start()
+
 
 @router.get("/data", response_model=MockData)
 def get_data():
