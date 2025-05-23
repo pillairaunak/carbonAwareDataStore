@@ -168,7 +168,7 @@ func (p *ApiIntensityProvider) GetCurrentIntensity(queryRegion string) (Intensit
 		IsLow:     apiData.CarbonIntensity <= p.threshold,
 	}
 	// Log the fetched data for visibility
-	log.Printf("[ApiProvider] Fetched from %s: Intensity: %.2f %s,(Threshold: <=%.2f)",
+	log.Printf("[ApiProvider] Fetched from %s: Intensity: %.2f, (Threshold: <=%.2f)",
 		p.apiUrl, apiData.CarbonIntensity, p.threshold)
 	return signal, nil
 }
