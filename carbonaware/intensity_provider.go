@@ -1,11 +1,11 @@
 package carbonaware
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -133,7 +133,7 @@ const (
 // APIDataResponse matches the structure of the JSON response from your Python API's /data endpoint.
 // It specifically targets the `carbon_data` field.
 type APIDataResponse struct {
-	CarbonData float64 `json:"carbon_data"`
+	CarbonData string
 	// Add other fields like pricing_data, forecasting_data if needed elsewhere,
 	// but for intensity, only carbon_data is critical.
 }
@@ -147,7 +147,7 @@ type APIIntensityProvider struct {
 }
 
 // NewAPIIntensityProvider creates a new APIIntensityProvider.
-// apiEndpointURL should be the full URL to the /data endpoint (e.g., "http://localhost:8000/data").
+// apiEndpointURL should be the full URL to the /data endpoint (e.g., "http://localhost:8000/carbon-intensity").
 // region is the region this provider is considered to be serving.
 func NewAPIIntensityProvider(apiEndpointURL string, region string, clientTimeout time.Duration) (*APIIntensityProvider, error) {
 	if apiEndpointURL == "" {
@@ -193,12 +193,8 @@ func (p *APIIntensityProvider) GetCurrentIntensity(regionQuery string) (Intensit
 		return IntensitySignal{}, fmt.Errorf("failed to read response body from %s: %w", p.apiEndpointURL, err)
 	}
 
-	var apiResponse APIDataResponse
-	if err := json.Unmarshal(body, &apiResponse); err != nil {
-		return IntensitySignal{}, fmt.Errorf("failed to unmarshal JSON response from %s: %w", p.apiEndpointURL, err)
-	}
-
-	carbonValue := apiResponse.CarbonData
+	bodyStr := string(body) // Convert []byte to string
+	carbonValue, err := strconv.ParseFloat(bodyStr, 64)
 	isLow := carbonValue <= p.lowCarbonThreshold
 
 	signal := IntensitySignal{
