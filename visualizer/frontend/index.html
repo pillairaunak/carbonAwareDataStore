@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniBTreeStore Carbon-Aware Visualizer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>MiniBTreeStore - Carbon-Aware Status</h1>
+
+        <div class="status-grid">
+            <div class="status-item carbon-intensity-card" id="carbon-intensity-card">
+                <h2>Carbon Intensity</h2>
+                <p id="carbon-intensity-text">Fetching...</p>
+                <p id="carbon-intensity-value">Value: --- gCO2eq/kWh</p>
+            </div>
+
+            <div class="status-item">
+                <h2>Deferred Queue</h2>
+                <p id="deferred-queue-size">Size: ---</p>
+            </div>
+
+            <div class="status-item">
+                <h2>Configuration</h2>
+                <p id="config-carbon-aware">Carbon Aware: ---</p>
+                <p id="config-carbon-region">Region: ---</p>
+            </div>
+        </div>
+
+        <div class="status-grid">
+            <div class="status-item">
+                <h2>Flushes: Normal</h2>
+                <p id="flushed-normal">Count: ---</p>
+            </div>
+
+            <div class="status-item">
+                <h2>Flushes: Deferred</h2>
+                <p id="flushed-deferred">Count: ---</p>
+            </div>
+
+            <div class="status-item">
+                <h2>Flushes: Forced</h2>
+                <p id="flushed-forced">Count: ---</p>
+            </div>
+        </div>
+        
+        <div class="status-grid">
+            <div class="status-item">
+                <h2>Buffer Pool</h2>
+                <p id="buffer-total-pages">Pages In Buffer: --- / <span id="buffer-capacity">---</span></p>
+                <p id="buffer-dirty-pages">Dirty Pages: ---</p>
+            </div>
+             <div class="status-item">
+                <h2>Connection</h2>
+                <p id="connection-status">Status: Connecting...</p>
+            </div>
+        </div>
+
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
