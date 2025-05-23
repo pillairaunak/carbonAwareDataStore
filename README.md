@@ -3,7 +3,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.18+-blue.svg)](https://golang.org/)
 
-MiniBTreeStore/DataStore is an experimental key-value (KV) store built in Go, utilizing a B+ Tree data structure for efficient on-disk storage. Its standout feature is a **carbon-aware flushing strategy** designed to reduce the environmental impact of its disk I/O operations.
+MiniBTreeStore is an experimental key-value (KV) store built in Go, utilizing a B+ Tree data structure for efficient on-disk storage. Its standout feature is a **carbon-aware flushing strategy** designed to reduce the environmental impact of its disk I/O operations.
 
 This project was developed as part of a deep-dive exploration into Green Software Engineering principles, demonstrating how even foundational components like a storage engine can be made more environmentally conscious.
 
