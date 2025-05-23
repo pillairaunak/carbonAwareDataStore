@@ -130,15 +130,18 @@ const addHoverable = (graphElement, points, labels, height) => {
   });
 };
 
+const getHour = (date) => date.getUTCHours();
+const getMinutes = (date) => date.getUTCMinutes();
+
 /**
  * Constructing the labels for the svg
  * @param {[number, number][]} dataPoints
  */
 const getLabels = (dataPoints) =>
-  dataPoints.map(
-    ([epoch, carbonIntensity]) =>
-      `${new Date(epoch).getHours()}:${new Date(epoch).getMinutes()} - ${carbonIntensity.toFixed(2)} gCO2eq/kWh`
-  );
+  dataPoints.map(([epoch, carbonIntensity]) => {
+    const date = new Date(epoch * 1e3);
+    return `${getHour(date)}:${getMinutes(date)} - ${carbonIntensity.toFixed(2)}`;
+  });
 
 /**
  * Constructing the locations for the svg
