@@ -7,21 +7,28 @@ from pydantic import BaseModel
 from routers.datasource import DataSource
 from schemas.electricitymaps import ElectricityMapSource
 from schemas.mocksource import MockData
+from schemas.forecasting_data import ForecastingData, ForecastingDataList
+from typing import Optional, List
 
 router = APIRouter()
 
-class Data(BaseModel):
-    carbon_data: float
-    forecasting_data: float
+class Data():
+    def __init__(self):
+        self.carbon_data: float = 0.0
+        self.forecasting_data: Optional[ForecastingDataList] = None
 
 
-data = Data(forecasting_data=0.0, carbon_data=0.0)
+data = Data()
 
 
 def update_data(source: DataSource):
     while True:
-        data.carbon_data = source.carbon_data()
-        data.forecasting_data = source.forecasting_data()
+        carbon_data = source.carbon_data()
+        if carbon_data is not None:
+            data.carbon_data = carbon_data
+        carbon_data_forecast = source.forecasting_data()
+        if carbon_data_forecast is not None:
+            data.forecasting_data = carbon_data_forecast
         time.sleep(60)
 
 
