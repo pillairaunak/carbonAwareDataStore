@@ -7,11 +7,6 @@ CARBON_API_KEY = "RZ3Zp595HbEVg9wlGXPa"
 
 class ElectricityMapSource(DataSource):
 
-    def pricing_data(self) -> float:
-        # TODO implement
-        return random.randint(1, 100) + random.random()
-
-
     def _request_carbon_intensity_forecast(self) -> float:
         """Carbon intensity forecast. """
         url = "https://api.electricitymap.org/v3/carbon-intensity/forecast"
