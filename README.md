@@ -113,7 +113,13 @@ To test the carbon-aware features interactively, use the command-line flags prov
 This project currently uses a `MockIntensityProvider` to simulate grid carbon intensity. This is essential for controlled testing and demonstration of the carbon-aware logic. Future work could involve integrating this with real-world carbon intensity data APIs (e.g., from the Green Software Foundation's Carbon Aware SDK, WattTime, Electricity Maps).
 
 ## Contributors
-
+*Arka Mitra 
+*Carmen Parra
+*Ismail Mohamed Mohamud
+*Jeffrey Koppanyi
+*Joe Romeo 
+*Jonas Ward Van den Bulcke
+*Raunak Pillai
 
 
 ## License
