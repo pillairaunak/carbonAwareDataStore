@@ -1,8 +1,11 @@
 package carbonaware
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -24,6 +27,8 @@ type IntensityProvider interface {
 	// GetCurrentIntensity fetches the current carbon intensity signal for a given region.
 	GetCurrentIntensity(region string) (IntensitySignal, error)
 }
+
+// --- MockIntensityProvider Start ---
 
 // MockIntensityProvider is an implementation of IntensityProvider
 // that simulates carbon intensity data, useful for testing and demos.
@@ -92,8 +97,6 @@ func (m *MockIntensityProvider) SimulateTimedChanges(interval time.Duration, qui
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	// Initial state is already set by NewMockIntensityProvider
-	// We need to read the initial state under lock to be safe if SimulateTimedChanges is called very quickly after New
 	m.mu.RLock()
 	isCurrentlyLow := m.currentSignal.IsLow
 	m.mu.RUnlock()
@@ -115,3 +118,100 @@ func (m *MockIntensityProvider) SimulateTimedChanges(interval time.Duration, qui
 		}
 	}
 }
+
+// --- MockIntensityProvider End ---
+
+// --- APIIntensityProvider Start ---
+
+const (
+	// DefaultLowCarbonIntensityThreshold defines the gCO2eq/kWh value below which carbon intensity is considered low.
+	// This value can be adjusted based on regional data or specific requirements.
+	// For example, ElectricityMap often uses a gradient, but a common heuristic for "low" could be < 100-150.
+	DefaultLowCarbonIntensityThreshold = 100.0
+)
+
+// APIDataResponse matches the structure of the JSON response from your Python API's /data endpoint.
+// It specifically targets the `carbon_data` field.
+type APIDataResponse struct {
+	CarbonData float64 `json:"carbon_data"`
+	// Add other fields like pricing_data, forecasting_data if needed elsewhere,
+	// but for intensity, only carbon_data is critical.
+}
+
+// APIIntensityProvider implements IntensityProvider by fetching data from a specified HTTP endpoint.
+type APIIntensityProvider struct {
+	apiEndpointURL     string
+	httpClient         *http.Client
+	lowCarbonThreshold float64 // Threshold to determine if intensity is low.
+	region             string  // Region this provider is configured for.
+}
+
+// NewAPIIntensityProvider creates a new APIIntensityProvider.
+// apiEndpointURL should be the full URL to the /data endpoint (e.g., "http://localhost:8000/data").
+// region is the region this provider is considered to be serving.
+func NewAPIIntensityProvider(apiEndpointURL string, region string, clientTimeout time.Duration) (*APIIntensityProvider, error) {
+	if apiEndpointURL == "" {
+		return nil, fmt.Errorf("API endpoint URL cannot be empty")
+	}
+	if region == "" {
+		return nil, fmt.Errorf("region cannot be empty for APIIntensityProvider")
+	}
+
+	return &APIIntensityProvider{
+		apiEndpointURL: apiEndpointURL,
+		httpClient: &http.Client{
+			Timeout: clientTimeout, // Configurable timeout for HTTP requests
+		},
+		lowCarbonThreshold: DefaultLowCarbonIntensityThreshold,
+		region:             region,
+	}, nil
+}
+
+// GetCurrentIntensity fetches the current carbon intensity from the configured API endpoint.
+func (p *APIIntensityProvider) GetCurrentIntensity(regionQuery string) (IntensitySignal, error) {
+	if regionQuery != p.region {
+		return IntensitySignal{}, fmt.Errorf("APIIntensityProvider configured for region '%s', but queried for '%s'", p.region, regionQuery)
+	}
+
+	req, err := http.NewRequest("GET", p.apiEndpointURL, nil)
+	if err != nil {
+		return IntensitySignal{}, fmt.Errorf("failed to create request to %s: %w", p.apiEndpointURL, err)
+	}
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return IntensitySignal{}, fmt.Errorf("failed to fetch data from %s: %w", p.apiEndpointURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return IntensitySignal{}, fmt.Errorf("received non-OK HTTP status %d from %s", resp.StatusCode, p.apiEndpointURL)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return IntensitySignal{}, fmt.Errorf("failed to read response body from %s: %w", p.apiEndpointURL, err)
+	}
+
+	var apiResponse APIDataResponse
+	if err := json.Unmarshal(body, &apiResponse); err != nil {
+		return IntensitySignal{}, fmt.Errorf("failed to unmarshal JSON response from %s: %w", p.apiEndpointURL, err)
+	}
+
+	carbonValue := apiResponse.CarbonData
+	isLow := carbonValue <= p.lowCarbonThreshold
+
+	signal := IntensitySignal{
+		Region:    p.region,
+		Timestamp: time.Now(), // Timestamp of when the data was fetched and processed
+		Value:     carbonValue,
+		IsLow:     isLow,
+	}
+
+	log.Printf("[APIIntensityProvider] Fetched intensity for region '%s'. Value: %.2f, IsLow: %t. Endpoint: %s",
+		p.region, signal.Value, signal.IsLow, p.apiEndpointURL)
+
+	return signal, nil
+}
+
+// --- APIIntensityProvider End ---
