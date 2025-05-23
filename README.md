@@ -117,4 +117,3 @@ This project currently uses a `MockIntensityProvider` to simulate grid carbon in
 
 ## License
 
-```
