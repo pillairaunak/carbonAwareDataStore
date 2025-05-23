@@ -4,11 +4,11 @@
  * @returns rgb color string
  */
 const getGradientColorForValue = (n) => {
-  const r = 255;
-  const g = Math.round(255 * n); //Math.round(255 * n);
-  const b = Math.round(255 * n);
+  const h = Math.min(1.0, Math.max(n, 0.0)) * 90;
+  const s = 100;
+  const l = 50;
   const a = 1 - n;
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
+  return `hsla(${h}deg, ${s}%, ${l}%, ${a})`;
 };
 
 /**
