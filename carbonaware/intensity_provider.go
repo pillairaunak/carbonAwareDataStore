@@ -194,7 +194,7 @@ func (p *APIIntensityProvider) GetCurrentIntensity(regionQuery string) (Intensit
 	}
 
 	bodyStr := string(body) // Convert []byte to string
-	carbonValue, err := strconv.ParseFloat(bodyStr, 64)
+	carbonValue, err := strconv.ParseFloat(bodyStr, 32)
 	isLow := carbonValue <= p.lowCarbonThreshold
 
 	signal := IntensitySignal{

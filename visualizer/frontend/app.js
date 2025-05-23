@@ -133,6 +133,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.carbonSignal) {
         const intensityText = data.carbonSignal.IsLow ? 'LOW 🟢' : 'HIGH 🔴';
         carbonIntensityTextEl.textContent = intensityText;
+        carbonIntensityValueEl.textContent = `Value: ${
+          data.carbonSignal.Value !== -1 ? data.carbonSignal.Value.toFixed(2) : '---'
+        } gCO2eq/kWh`;
 
         carbonIntensityCardEl.classList.remove('carbon-intensity-low', 'carbon-intensity-high');
         if (data.carbonSignal.Value !== -1) {
@@ -162,6 +165,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       connectionStatusEl.textContent = 'Status: Connected ✅';
       connectionStatusEl.className = 'connected';
+
+      
     } catch (error) {
       console.error('Error fetching or updating status:', error);
       carbonIntensityTextEl.textContent = 'Error';
@@ -176,23 +181,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const response = await fetch(FORECAST_URL);
     const data = await response.json();
 
-    const points = data.forecast.map((entry) => {
+    const points = data.forecast.map(entry => {
       const value = entry.value;
       return [Number(entry.timestamp), value];
     });
 
     addGraph(
-      graphElement,
-      points, // curently mocked data,
-      300,
-      150,
-      20
-    );
-
-    const epoch = Number(new Date()) * 1e-3;
-    const value = points.find(([e, v]) => e > epoch);
-
-    carbonIntensityValueEl.textContent = `Value: ${value !== undefined ? value[1].toFixed(2) : '---'} gCO2eq/kWh`;
+        graphElement,
+        points, // curently mocked data,
+        300,
+        150,
+        20
+      );
 
     return points;
   }
