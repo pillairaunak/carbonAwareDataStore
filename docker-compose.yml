@@ -1,0 +1,9 @@
+name: carbon-aware-data-store
+version: '3.8'
+services:
+  api:
+    build:
+      context: api_data
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
