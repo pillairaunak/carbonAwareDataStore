@@ -23,7 +23,7 @@ func main() {
 	bufferSize := flag.Int("buffersize", 100, "Number of pages in the buffer pool")
 	carbonAware := flag.Bool("carbonaware", false, "Enable carbon-aware mode")
 	carbonRegion := flag.String("carbonregion", "europe-west6", "Carbon intensity region (e.g., Zurich)") //
-	carbonAPIEndpoint := flag.String("carbonapiurl", "", "URL for the carbon intensity API (e.g., http://localhost:8000/data)")
+	carbonAPIEndpoint := flag.String("carbonapiurl", "http://localhost:8000/carbon-intensity", "URL for the carbon intensity API (e.g., http://localhost:8000/carbon-intensity)")
 	carbonAPIClientTimeout := flag.Duration("carbonapitimeout", 10*time.Second, "Timeout for the carbon API client")
 	deferredInterval := flag.Duration("interval", 30*time.Second, "Interval for deferred flush check")                                          //
 	vizPort := flag.String("vizport", ":8081", "Port for the visualizer HTTP server (e.g., :8081). Set to empty to disable.")                   //
