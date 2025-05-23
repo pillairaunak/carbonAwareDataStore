@@ -99,6 +99,7 @@ const mockData = [
 
 document.addEventListener('DOMContentLoaded', () => {
   const API_URL = 'http://localhost:8081/status'; // Default, ensure this matches your Go server port from main.go
+  const FORECAST_URL = 'http://localhost:8000/carbon-intensity-forecast'
 
   const carbonIntensityTextEl = document.getElementById('carbon-intensity-text');
   const carbonIntensityValueEl = document.getElementById('carbon-intensity-value');
@@ -165,13 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
       connectionStatusEl.textContent = 'Status: Connected ✅';
       connectionStatusEl.className = 'connected';
 
-      addGraph(
-        graphElement,
-        mockData, // curently mocked data,
-        300,
-        150,
-        20
-      );
+      
     } catch (error) {
       console.error('Error fetching or updating status:', error);
       carbonIntensityTextEl.textContent = 'Error';
@@ -182,9 +177,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function fetchForecastDataAndUpdate() {
+    const response = await fetch(FORECAST_URL);
+    const data = await response.json();
+
+    const points = data.forecast.map(entry => {
+      const value = entry.value;
+      return [Number(entry.timestamp), value];
+    });
+
+    addGraph(
+        graphElement,
+        points, // curently mocked data,
+        300,
+        150,
+        20
+      );
+
+    return points;
+  }
+
   // Fetch data every 2 seconds
   const intervalId = setInterval(fetchDataAndUpdate, 2000);
   fetchDataAndUpdate(); // Initial call to populate data immediately
+
+  const forecastIntervalId = setInterval(fetchForecastDataAndUpdate, 2000);
+  fetchForecastDataAndUpdate();
 
   // Optional: Clear interval if the page is hidden to save resources
   // document.addEventListener("visibilitychange", () => {
