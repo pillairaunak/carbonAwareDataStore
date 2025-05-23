@@ -1,22 +1,20 @@
 from dataclasses import dataclass
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from schemas.mock_schema import MockData
 from threading import Thread
 import time
 import random
 import requests
 
-from routers.schema import DataSource
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+from routers.datasource import DataSource
 from schemas.electricitymaps import ElectricityMapSource
+from schemas.mocksource import MockData
 
 router = APIRouter()
 
-mock_data = MockData(pricing_data=0.0, forecasting_data=0.0, carbon_data=0.0)
-
-@dataclass
-class Data:
+class Data(BaseModel):
     pricing_data: float
     forecasting_data: float
     carbon_data: float
@@ -40,6 +38,6 @@ def start_background_task():
     thread.start()
 
 
-@router.get("/data", response_model=MockData)
+@router.get("/data", response_model=Data)
 def get_data():
-    return mock_data
+    return data
